@@ -51,6 +51,77 @@ class NoughtsResource() {
   @PUT
   @Path("/{gameId}")
   def makeMove(@PathParam("gameId") gameId: String, move: Move) {
-    
+    //First find corresponding game 
+    if ( !games.contains(gameId) ) {
+      throw new WebApplicationException(404);
+    }
+
+    val game = games(gameId);
+    var playerIndex = 0;
+
+    if ( move.playerId == game.player1Id ) {
+      playerIndex = 1;
+    }
+
+    if ( move.playerId == game.player2Id ) {
+      playerIndex = 2;
+    }
+
+    //Validate the move and return HTTP error if its not valid
+    validateMove(game, playerIndex, move.x, move.y);
+
+    game.matrix(move.x)(move.y) = playerIndex;
+    //switch active player 
+    game.activePlayer = 3 - game.activePlayer;
+
+    //see if playerIndex is a winner because of this move
+    if ( isWinner(game.matrix, playerIndex) ) {
+      game.isGameOver = true;
+      game.winnerIndex = playerIndex;
+    }
+    else if ( isDraw(game.matrix) ) {
+      game.isGameOver = true;
+      game.winnerIndex = 0;
+    }
+    //No need to return anything
+  }
+
+  def isWinner(matrix: Array[Array[Int]], playerIndex: Int): Boolean = {
+    return false;
+  }
+
+  def isDraw(matrix: Array[Array[Int]]): Boolean = {
+    return false;
+  }
+
+  def validateMove(game: Game, playerIndex: Int, x: Int, y: Int) {
+    //If it's player1's turn and player 2 is sending a move, or the other way,
+    //just return HTTP error
+    if ( playerIndex == 1 && game.activePlayer == 2 ) {
+      throw new WebApplicationException(404);
+    }
+
+    if ( playerIndex == 2 && game.activePlayer == 1 ) {
+      throw new WebApplicationException(404);
+    }
+    //If given playerId does not belong to this game, just return HTTP error
+    if ( playerIndex == 0 ) {
+      throw new WebApplicationException(404);
+    }
+
+    //Make sure given position is not outside game matrix
+    if ( x < 1 || y < 1 || x > 3 || y > 3 ) {
+      throw new WebApplicationException(404);
+    }
+
+    //Make sure the matrix position player wants to put a piece, is already empty
+    if ( game.matrix(x)(y) != 0 ) {
+      throw new WebApplicationException(404);
+    }
+
+    if ( game.isGameOver ) {
+      throw new WebApplicationException(404);
+    }
+
   }
 }
