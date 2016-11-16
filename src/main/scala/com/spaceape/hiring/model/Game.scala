@@ -1,10 +1,9 @@
 package com.spaceape.hiring.model
 
 
-class Game(val gameId: Int, val p1: String, val p2: String) {
-  var id: Int = gameId;   
-  var p1Id: String = p1;
-  var p2Id: String = p2;
+class Game(val p1: String, val p2: String) {
+  var player1Id: String = p1;
+  var player2Id: String = p2;
 
   /* These fields have fixed value upon game creation */
   var activePlayer: Int = 1;
