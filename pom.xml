@@ -74,7 +74,9 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <configuration>
-                    <descriptor>src/assembly/candidate.xml</descriptor>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
                     <finalName>for-candidate</finalName>
                 </configuration>
                 <executions>
