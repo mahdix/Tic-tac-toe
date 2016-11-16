@@ -24,6 +24,10 @@ class NoughtsApplication extends Application[NoughtsConfiguration] {
     val resource = new NoughtsResource()
     val objectMapper = new ObjectMapper()
     objectMapper.registerModule(DefaultScalaModule)
+
+    val healthCheck = new MyHealthCheck();
+    environment.healthChecks().register("default", healthCheck);
+
     environment.jersey().register(new JacksonMessageBodyProvider(objectMapper, environment.getValidator()));
     environment.jersey().register(resource);
   }
