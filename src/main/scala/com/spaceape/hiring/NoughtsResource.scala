@@ -15,6 +15,13 @@ class NoughtsResource() {
 
   @POST
   def createGame(@QueryParam("player1Id") player1: String, @QueryParam("player2Id") player2: String): String = {
+    //First make sure there is no other game between these two players
+    for( (k,v) <- games ) {
+      if ( v.player1Id == player1 && v.player2Id == player2 ) {
+        throw new WebApplicationException("DSADSAD", 404);
+      }
+    }
+
     //Note that by choosing an integer number (size of the games map) as the key, we are limited to ~2^32 games
     val nextId = games.size.toString();
     games(nextId) = new Game(player1, player2);
