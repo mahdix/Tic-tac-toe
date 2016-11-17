@@ -50,10 +50,10 @@ class NoughtsResource() {
 
   @PUT
   @Path("/{gameId}")
-  def makeMove(@PathParam("gameId") gameId: String, move: Move) {
+  def makeMove(@PathParam("gameId") gameId: String, move: Move): GameState = {
     //First find corresponding game 
     if ( !games.contains(gameId) ) {
-      throw new WebApplicationException(404);
+      throw new WebApplicationException("Cannot find game", 404);
     }
 
     val game = games(gameId);
@@ -71,6 +71,7 @@ class NoughtsResource() {
     validateMove(game, playerIndex, move.x, move.y);
 
     game.matrix(move.x)(move.y) = playerIndex;
+
     //switch active player 
     game.activePlayer = 3 - game.activePlayer;
 
@@ -83,45 +84,91 @@ class NoughtsResource() {
       game.isGameOver = true;
       game.winnerIndex = 0;
     }
-    //No need to return anything
+
+    return getGame(gameId);
   }
 
   def isWinner(matrix: Array[Array[Int]], playerIndex: Int): Boolean = {
+    var winner = false;
+
+    //check for row wins
+    for(r <- 0 to 2) {
+      winner = true;
+      for(c <- 0 to 2) {
+        if ( matrix(r)(c) != playerIndex ) {
+          winner = false;
+        }
+      }
+      if ( winner ) return true;
+    }
+
+    //check for column wins
+    for(c <- 0 to 2) {
+      winner = true;
+      for(r <- 0 to 2) {
+        if ( matrix(r)(c) != playerIndex ) {
+          winner = false;
+        }
+      }
+      if ( winner ) return true;
+    }
+
+    //check for diagonal wins
+    winner = true;
+    for( x <- 0 to 2 ) {
+      if ( matrix(x)(x) != playerIndex ) winner = false;
+    }
+    if ( winner ) return true;
+
+    winner = true;
+    for( x <- 0 to 2 ) {
+      if ( matrix(x)(2-x) != playerIndex ) winner = false;
+    }
+    if ( winner ) return true;
+
     return false;
   }
 
   def isDraw(matrix: Array[Array[Int]]): Boolean = {
-    return false;
+    //If at least there is one empty cell, then game is not over
+    for(r <- 0 to 2) {
+      for(c <- 0 to 2) {
+        if ( matrix(r)(c) == 0 ) return false;
+      }
+    }
+
+    return true;
   }
 
   def validateMove(game: Game, playerIndex: Int, x: Int, y: Int) {
+    //you cannot make a move for a game which is finished
+    if ( game.isGameOver ) {
+      throw new WebApplicationException("A", 404);
+    }
+
+    //If given playerId does not belong to this game, just return HTTP error
+    if ( playerIndex == 0 ) {
+      throw new WebApplicationException(405);
+    }
+
     //If it's player1's turn and player 2 is sending a move, or the other way,
     //just return HTTP error
     if ( playerIndex == 1 && game.activePlayer == 2 ) {
-      throw new WebApplicationException(404);
+      throw new WebApplicationException(406);
     }
 
     if ( playerIndex == 2 && game.activePlayer == 1 ) {
-      throw new WebApplicationException(404);
-    }
-    //If given playerId does not belong to this game, just return HTTP error
-    if ( playerIndex == 0 ) {
-      throw new WebApplicationException(404);
+      throw new WebApplicationException(406);
     }
 
     //Make sure given position is not outside game matrix
-    if ( x < 1 || y < 1 || x > 3 || y > 3 ) {
-      throw new WebApplicationException(404);
+    if ( x < 0 || y < 0 || x > 2 || y > 2 ) {
+      throw new WebApplicationException(407);
     }
 
     //Make sure the matrix position player wants to put a piece, is already empty
     if ( game.matrix(x)(y) != 0 ) {
-      throw new WebApplicationException(404);
+      throw new WebApplicationException(408);
     }
-
-    if ( game.isGameOver ) {
-      throw new WebApplicationException(404);
-    }
-
   }
 }
