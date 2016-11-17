@@ -92,6 +92,19 @@ class NoughtsTest extends JUnitSuite with Matchers {
 	}
 
   @Test
+  def testEdgeCases {
+    //Edge case 1 - You cannot create a new game while another one is in progress with same players
+    //Edge case 2 - A player cannot create a game against himself
+    //Edge case 3 - In no request, an invalid game id is allowed
+    //Edge case 4 - No player cannot make a move out of his turn
+    //Edge case 5 - The first player must make the first move
+    //Edge case 6 - You cannot make a move which lies outside board
+    //Edge case 7 - You cannot make a move if game is over
+    //Edge case 8 - You cannot pass invalid playerId in moves
+    //Edge case 9 - You cannot make a move to a pre-occupied cell
+  }
+
+  @Test
   def testFlows {
     //Player 4 wins in a normal flow
     testGameFlow("3", "4",
@@ -108,5 +121,19 @@ class NoughtsTest extends JUnitSuite with Matchers {
     testGameFlow("5", "6",
       Seq(), 
       None, false);
+
+    //Test draw outcome
+    testGameFlow("7", "8",
+      Seq(
+        Move("7", 0, 1),
+        Move("8", 0, 0),
+        Move("7", 0, 2),
+        Move("8", 1, 2),
+        Move("7", 1, 0),
+        Move("8", 2, 0), 
+        Move("7", 1, 1), 
+        Move("8", 2, 1), 
+        Move("7", 2, 2)), 
+      None, true);
   }
 }

@@ -16,6 +16,11 @@ class NoughtsResource() {
 
   @POST
   def createGame(@QueryParam("player1Id") player1: String, @QueryParam("player2Id") player2: String): String = {
+    //You cannot play against yourself, unless your are very bored!
+    if ( player1 == player2 ) {
+        throw new WebApplicationException(403);
+    }
+
     //First make sure there is no other game between these two players
     for( (k,v) <- games ) {
       if ( v.player1Id == player1 && v.player2Id == player2 && !v.isGameOver) {
