@@ -3,6 +3,7 @@ package com.spaceape.hiring
 import javax.ws.rs._
 import javax.ws.rs.core.MediaType
 import javax.ws.rs.core.Response.Status
+import javax.ws.rs.core.Response
 import collection.mutable.HashMap
 
 import com.spaceape.hiring.model.{GameState, Move, Game};
@@ -52,7 +53,8 @@ class NoughtsResource() {
 
   @PUT
   @Path("/{gameId}")
-  def makeMove(@PathParam("gameId") gameId: String, move: Move): GameState = {
+  def makeMove(@PathParam("gameId") gameId: String, move: Move): Response = {
+    printf("inside makemove\n");
     //First find corresponding game 
     if ( !games.contains(gameId) ) {
       //Cannot find this game
@@ -87,8 +89,8 @@ class NoughtsResource() {
       game.isGameOver = true;
       game.winnerIndex = 0;
     }
-
-    return getGame(gameId);
+    printf("exitting makemove\n");
+    return Response.status(Response.Status.ACCEPTED).build();
   }
 
   def isWinner(matrix: Array[Array[Int]], playerIndex: Int): Boolean = {
