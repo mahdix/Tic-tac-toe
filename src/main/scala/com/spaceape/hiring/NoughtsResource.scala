@@ -17,8 +17,9 @@ class NoughtsResource() {
   def createGame(@QueryParam("player1Id") player1: String, @QueryParam("player2Id") player2: String): String = {
     //First make sure there is no other game between these two players
     for( (k,v) <- games ) {
-      if ( v.player1Id == player1 && v.player2Id == player2 ) {
-        throw new WebApplicationException("DSADSAD", 404);
+      if ( v.player1Id == player1 && v.player2Id == player2 && !v.isGameOver) {
+        //These players have already another game in progress -> Request is forbidden
+        throw new WebApplicationException(403);
       }
     }
 
@@ -32,19 +33,20 @@ class NoughtsResource() {
   @GET
   @Path("/{gameId}")
   def getGame(@PathParam("gameId") gameId: String): GameState = {
-    if ( games.contains(gameId) ) {
-      val game = games(gameId);
-      val winnerIndex = game.winnerIndex;
-      val gameOver = game.isGameOver;
-      var winnerId: Option[String] = None;
-
-      if ( winnerIndex == 1 ) winnerId = Some(game.player1Id);
-      if ( winnerIndex == 2 ) winnerId = Some(game.player2Id);
-
-      return GameState(winnerId, gameOver);
+    if ( !games.contains(gameId) ) {
+      //Cannot find this game
+      throw new WebApplicationException(404);
     }
 
-    throw new WebApplicationException(404);
+    val game = games(gameId);
+    val winnerIndex = game.winnerIndex;
+    val gameOver = game.isGameOver;
+    var winnerId: Option[String] = None;
+
+    if ( winnerIndex == 1 ) winnerId = Some(game.player1Id);
+    if ( winnerIndex == 2 ) winnerId = Some(game.player2Id);
+
+    return GameState(winnerId, gameOver);
   }
 
 
@@ -53,7 +55,8 @@ class NoughtsResource() {
   def makeMove(@PathParam("gameId") gameId: String, move: Move): GameState = {
     //First find corresponding game 
     if ( !games.contains(gameId) ) {
-      throw new WebApplicationException("Cannot find game", 404);
+      //Cannot find this game
+      throw new WebApplicationException(404);
     }
 
     val game = games(gameId);
@@ -143,32 +146,33 @@ class NoughtsResource() {
   def validateMove(game: Game, playerIndex: Int, x: Int, y: Int) {
     //you cannot make a move for a game which is finished
     if ( game.isGameOver ) {
-      throw new WebApplicationException("A", 404);
+      throw new WebApplicationException(403);
     }
 
-    //If given playerId does not belong to this game, just return HTTP error
+    //If given playerId does not belong to this game, just return HTTP error of conflict
     if ( playerIndex == 0 ) {
-      throw new WebApplicationException(405);
+      throw new WebApplicationException(409);
     }
 
     //If it's player1's turn and player 2 is sending a move, or the other way,
-    //just return HTTP error
+    //just return HTTP error as not authorized
     if ( playerIndex == 1 && game.activePlayer == 2 ) {
-      throw new WebApplicationException(406);
+      throw new WebApplicationException(401);
     }
 
     if ( playerIndex == 2 && game.activePlayer == 1 ) {
-      throw new WebApplicationException(406);
+      throw new WebApplicationException(401);
     }
 
-    //Make sure given position is not outside game matrix
+    //Make sure given position is not outside game matrix - If not return Bad Request error code
     if ( x < 0 || y < 0 || x > 2 || y > 2 ) {
-      throw new WebApplicationException(407);
+      throw new WebApplicationException(400);
     }
 
     //Make sure the matrix position player wants to put a piece, is already empty
+    //If not return HTTP Error: Not Acceptable
     if ( game.matrix(x)(y) != 0 ) {
-      throw new WebApplicationException(408);
+      throw new WebApplicationException(406);
     }
   }
 }
