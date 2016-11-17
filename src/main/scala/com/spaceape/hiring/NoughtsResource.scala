@@ -54,7 +54,6 @@ class NoughtsResource() {
   @PUT
   @Path("/{gameId}")
   def makeMove(@PathParam("gameId") gameId: String, move: Move): Response = {
-    printf("inside makemove\n");
     //First find corresponding game 
     if ( !games.contains(gameId) ) {
       //Cannot find this game
@@ -89,7 +88,6 @@ class NoughtsResource() {
       game.isGameOver = true;
       game.winnerIndex = 0;
     }
-    printf("exitting makemove\n");
     return Response.status(Response.Status.ACCEPTED).build();
   }
 
