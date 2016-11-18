@@ -8,6 +8,7 @@ import collection.mutable.HashMap
 import redis.clients.jedis.Jedis
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
+import scala.collection.JavaConversions._
 
 import com.spaceape.hiring.model.{GameState, Move, Game};
 
@@ -15,7 +16,6 @@ import com.spaceape.hiring.model.{GameState, Move, Game};
 @Produces(Array(MediaType.APPLICATION_JSON))
 @Consumes(Array(MediaType.APPLICATION_JSON))
 class NoughtsResource() {
-  val games = new HashMap[String,Game]();
   val jedis = new Jedis("localhost");
 
   val objectMapper = new ObjectMapper()
@@ -32,36 +32,58 @@ class NoughtsResource() {
     }
 
     //First make sure there is no other game between these two players
-    for( (k,v) <- games ) {
+    for( id <- getAllGames() ) {
+      printf("Loading game %s\n", id)
+      val v = loadGame(id).get
+
       if ( v.player1Id == player1 && v.player2Id == player2 && !v.isGameOver) {
         //These players have already another game in progress -> Request is forbidden
         throw new WebApplicationException(403);
       }
     }
 
-    //Note that by choosing an integer number (size of the games map) as the key, we are limited to ~2^32 games
-    val nextId = games.size.toString();
-    val result = new Game(player1, player2)
-    games(nextId) = result
-    
-
-    saveGame(nextId, result)
-    val g = loadGame(nextId)
-    if ( g != None ) {
-      printf("Read back %s from redis which should be %s\n", g.get.player1Id, player1);
-    }
-
-    return nextId;
+    //Note that by choosing an integer number, we are limited to ~2^32 games
+    return saveGame(new Game(player1, player2))
   }
 
-  def saveGame(gameId: String, game: Game) {
-    val json = objectMapper.writeValueAsString(game)
+  /* def updatePlayerScore(playerId: String) { */
+  /*   //ZREVRANGE myzset -10 -1 */
+  /* } */
 
-    jedis.set(gameId, json);
+  def getAllGames(): Set[String] = {
+    val gameIds = jedis.keys("GAME::*");
+    var result: Set[String] = Set()
+
+    for(k <- gameIds ) {
+      result += k.substring(6)
+    }
+
+    return result
+  }
+
+  def updateGame(game: Game, gameId: String) {
+    val json = objectMapper.writeValueAsString(game)
+    jedis.set("GAME::"+gameId, json);
+  }
+
+  //Save a new game
+  def saveGame(game: Game): String = {
+    var gameId = jedis.get("NEXT_ID");
+    if ( gameId == null ) gameId = "0";
+
+    val json = objectMapper.writeValueAsString(game)
+    jedis.set("GAME::"+gameId, json);
+
+    //update redis counter for next game id
+    var intId = gameId.toInt;
+    intId = intId + 1
+    jedis.set("NEXT_ID", intId.toString)
+
+    return gameId;
   }
 
   def loadGame(gameId: String): Option[Game] = {
-    val json = jedis.get(gameId); 
+    val json = jedis.get("GAME::"+gameId); 
     if ( json == null ) return None;
 
     return Some(objectMapper.readValue(json, classOf[Game]));
@@ -70,12 +92,15 @@ class NoughtsResource() {
   @GET
   @Path("/{gameId}")
   def getGame(@PathParam("gameId") gameId: String): GameState = {
-    if ( !games.contains(gameId) ) {
+    val maybeGame = loadGame(gameId);
+
+    if ( maybeGame == None ) {
       //Cannot find this game
       throw new WebApplicationException(404);
     }
 
-    val game = games(gameId);
+    val game = maybeGame.get
+
     val winnerIndex = game.winnerIndex;
     val gameOver = game.isGameOver;
     var winnerId: Option[String] = None;
@@ -91,12 +116,15 @@ class NoughtsResource() {
   @Path("/{gameId}")
   def makeMove(@PathParam("gameId") gameId: String, move: Move): Response = {
     //First find corresponding game 
-    if ( !games.contains(gameId) ) {
+    val maybeGame = loadGame(gameId);
+
+    if ( maybeGame == None ) {
       //Cannot find this game
       throw new WebApplicationException(404);
     }
 
-    val game = games(gameId);
+    val game = maybeGame.get;
+
     var playerIndex = 0;
 
     if ( move.playerId == game.player1Id ) {
@@ -124,6 +152,9 @@ class NoughtsResource() {
       game.isGameOver = true;
       game.winnerIndex = 0;
     }
+
+    updateGame(game, gameId)
+
     return Response.status(Response.Status.OK).build();
   }
 
