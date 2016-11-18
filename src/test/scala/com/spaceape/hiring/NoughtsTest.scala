@@ -83,14 +83,22 @@ class NoughtsTest extends JUnitSuite with Matchers {
 
   //A general purpose test helper method which does some moves and checks the game status
 	def testGameFlow(p1: String, p2: String, moves: Seq[Move], 
-    expectedWinner: Option[String], expectedGameOver: Boolean) {
-
+                   expectedWinner: Option[String], expectedGameOver: Boolean, 
+                   expectedMoveCount: Int, expectedActivePlayer: Int) {
     val gameId = initGame(p1, p2)
     runMoves(gameId, moves); 
 
     val game = getState(gameId);
     if ( game.winnerId != expectedWinner || game.gameOver != expectedGameOver ) {
       throw new RuntimeException(s"Invalid game state: ${game.winnerId}, ${game.gameOver}")
+    }
+
+    if ( expectedMoveCount != game.moveCount ) {
+      throw new RuntimeException(s"Invalid move count reported: ${game.moveCount}, expecting: ${expectedMoveCount}");
+    }
+
+    if ( expectedActivePlayer != game.activePlayerIndex ) {
+      throw new RuntimeException(s"Invalid active player reported: ${game.activePlayerIndex}, expecting: ${expectedActivePlayer}");
     }
 
     //Try to make a move after game is over and make sure HTTP error 403 is returned
@@ -165,7 +173,7 @@ class NoughtsTest extends JUnitSuite with Matchers {
         Move("4", 0, 1),
         Move("3", 2, 2),
         Move("4", 0, 2)), 
-      Some("4"), true);
+      Some("4"), true, 6, 1);
 
     //Another win scenario - This time for the second player
     testGameFlow("3a", "4a",
@@ -176,12 +184,12 @@ class NoughtsTest extends JUnitSuite with Matchers {
         Move("4a", 1, 1),
         Move("3a", 1, 0),
         Move("4a", 2, 1)), 
-      Some("4a"), true);
+      Some("4a"), true, 6, 1);
 
     //Without any move, game state should be correct
     testGameFlow("5", "6",
       Seq(), 
-      None, false);
+      None, false, 0, 1);
 
     //Test draw outcome
     testGameFlow("7", "8",
@@ -195,6 +203,6 @@ class NoughtsTest extends JUnitSuite with Matchers {
         Move("7", 1, 1), 
         Move("8", 2, 1), 
         Move("7", 2, 2)), 
-      None, true);
+      None, true, 9, 2);
   }
 }

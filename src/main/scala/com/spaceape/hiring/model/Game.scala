@@ -7,7 +7,7 @@ class Game(val p1: String, val p2: String) {
 
   /* These fields have fixed value upon game creation */
 
-  //whose turn is it?
+  //whose turn is it? (index of active player)
   var activePlayer: Int = 1;
   var isGameOver: Boolean = false;
   var winnerIndex: Int = 0;  /*0 means there is no winner */

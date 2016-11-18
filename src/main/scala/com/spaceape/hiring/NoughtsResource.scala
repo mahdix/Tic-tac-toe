@@ -54,7 +54,7 @@ class NoughtsResource() {
     if ( winnerIndex == 1 ) winnerId = Some(game.player1Id);
     if ( winnerIndex == 2 ) winnerId = Some(game.player2Id);
 
-    return GameState(winnerId, gameOver);
+    return GameState(winnerId, gameOver, getMoveCount(game.matrix) , game.activePlayer);
   }
 
 
@@ -148,6 +148,19 @@ class NoughtsResource() {
     }
 
     return true;
+  }
+
+  def getMoveCount(matrix: Array[Array[Int]]): Int = {
+    var result = 0;
+
+    //If at least there is one empty cell, then game is not over
+    for(r <- 0 to 2) {
+      for(c <- 0 to 2) {
+        if ( matrix(r)(c) != 0 ) result = result+1;
+      }
+    }
+
+    return result;
   }
 
   def validateMove(game: Game, playerIndex: Int, x: Int, y: Int) {
