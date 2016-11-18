@@ -45,9 +45,10 @@ class NoughtsResource() {
     return saveGame(new Game(player1, player2))
   }
 
-  /* def updatePlayerScore(playerId: String) { */
-  /*   //ZREVRANGE myzset -10 -1 */
-  /* } */
+  //Player has won a game, so increment his score
+  def updatePlayerScore(playerId: String) {
+    jedis.zincrby("BOARD", 1, playerId)
+  }
 
   def getAllGames(): Set[String] = {
     val gameIds = jedis.keys("GAME::*");
@@ -86,6 +87,21 @@ class NoughtsResource() {
     if ( json == null ) return None;
 
     return Some(objectMapper.readValue(json, classOf[Game]));
+  }
+
+  @GET
+  def getLeaderboard(): Set[LeaderboardEntry] = {
+    //Return 10 highest scores in descending order
+    val redisBoard = jedis.zrevrange("BOARD", -10, -1);
+    var result: Set[String] = Set()
+
+    //Seems I need to convert java created mutable set to a Scala native immutable set
+    for(k <- redisBoard ) {
+      val score = jedis.zscore("BOARD", k)
+      result += LeaderboardEntry(k, score)
+    }
+
+    return result
   }
 
   @GET
@@ -146,6 +162,7 @@ class NoughtsResource() {
     if ( isWinner(game.matrix, playerIndex) ) {
       game.isGameOver = true;
       game.winnerIndex = playerIndex;
+      updatePlayerScore(move.playerId);
     }
     else if ( isDraw(game.matrix) ) {
       game.isGameOver = true;

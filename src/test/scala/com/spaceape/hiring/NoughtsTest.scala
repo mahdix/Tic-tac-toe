@@ -164,6 +164,47 @@ class NoughtsTest extends JUnitSuite with Matchers {
     runMoves(gameId, Seq( Move("j", 0, 1)), 406);
   }
 
+  def winGame(winner: String, looser: String) {
+    testGameFlow(looser, "4a",
+      Seq(
+        Move(looser, 0, 0),
+        Move(winner, 0, 1),
+        Move(looser, 0, 2),
+        Move(winner, 1, 1),
+        Move(looser, 1, 0),
+        Move(winner, 2, 1)), 
+      Some(winner), true, 6, 1);
+  }
+
+  @Test
+  def testLeaderboard {
+    val jedis = new Jedis("localhost");
+    jedis.flushAll()
+
+    winGame("a", "b")
+    winGame("a", "c")
+    winGame("a", "d")
+    winGame("a", "e")
+    winGame("a", "d")
+    winGame("a", "d")
+    winGame("a", "d")
+    winGame("a", "d")
+    winGame("a", "d")
+    winGame("a", "d")
+    winGame("a", "d")
+    winGame("a", "d")
+    winGame("a", "d")
+    winGame("a", "d")
+    winGame("a", "d")
+    winGame("a", "d")
+    winGame("a", "d")
+    winGame("a", "d")
+    winGame("a", "d")
+    winGame("a", "d")
+    winGame("a", "d")
+
+  }
+
   @Test
   def testFlows {
     //Player 4 wins in a normal flow
