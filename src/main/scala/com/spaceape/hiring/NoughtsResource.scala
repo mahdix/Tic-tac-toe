@@ -6,6 +6,8 @@ import javax.ws.rs.core.Response.Status
 import javax.ws.rs.core.Response
 import collection.mutable.HashMap
 import redis.clients.jedis.Jedis
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.scala.DefaultScalaModule
 
 import com.spaceape.hiring.model.{GameState, Move, Game};
 
@@ -14,11 +16,14 @@ import com.spaceape.hiring.model.{GameState, Move, Game};
 @Consumes(Array(MediaType.APPLICATION_JSON))
 class NoughtsResource() {
   val games = new HashMap[String,Game]();
+  val jedis = new Jedis("localhost");
+
+  val objectMapper = new ObjectMapper()
+  objectMapper.registerModule(DefaultScalaModule)
 
   @POST
   def createGame(@QueryParam("player1Id") player1: String, @QueryParam("player2Id") player2: String): String = {
-    val jedis = new Jedis("localhost");
-    jedis.set("foo", "bar");
+
     //You cannot play against yourself, unless your are very bored!
     if ( player1 == player2 ) {
         //I prefer to use a separate error code for this case, but HTTP error codes
@@ -36,9 +41,30 @@ class NoughtsResource() {
 
     //Note that by choosing an integer number (size of the games map) as the key, we are limited to ~2^32 games
     val nextId = games.size.toString();
-    games(nextId) = new Game(player1, player2);
+    val result = new Game(player1, player2)
+    games(nextId) = result
+    
+
+    saveGame(nextId, result)
+    val g = loadGame(nextId)
+    if ( g != None ) {
+      printf("Read back %s from redis which should be %s\n", g.get.player1Id, player1);
+    }
 
     return nextId;
+  }
+
+  def saveGame(gameId: String, game: Game) {
+    val json = objectMapper.writeValueAsString(game)
+
+    jedis.set(gameId, json);
+  }
+
+  def loadGame(gameId: String): Option[Game] = {
+    val json = jedis.get(gameId); 
+    if ( json == null ) return None;
+
+    return Some(objectMapper.readValue(json, classOf[Game]));
   }
 
   @GET
