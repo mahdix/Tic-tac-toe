@@ -18,6 +18,8 @@ class NoughtsResource() {
   def createGame(@QueryParam("player1Id") player1: String, @QueryParam("player2Id") player2: String): String = {
     //You cannot play against yourself, unless your are very bored!
     if ( player1 == player2 ) {
+        //I prefer to use a separate error code for this case, but HTTP error codes
+        //are limited and no other code has a more meaningful type
         throw new WebApplicationException(403);
     }
 
@@ -32,7 +34,7 @@ class NoughtsResource() {
     //Note that by choosing an integer number (size of the games map) as the key, we are limited to ~2^32 games
     val nextId = games.size.toString();
     games(nextId) = new Game(player1, player2);
-    
+
     return nextId;
   }
 
@@ -93,7 +95,7 @@ class NoughtsResource() {
       game.isGameOver = true;
       game.winnerIndex = 0;
     }
-    return Response.status(Response.Status.ACCEPTED).build();
+    return Response.status(Response.Status.OK).build();
   }
 
   def isWinner(matrix: Array[Array[Int]], playerIndex: Int): Boolean = {
@@ -176,7 +178,7 @@ class NoughtsResource() {
 
     //Make sure the matrix position player wants to put a piece, is already empty
     //If not return HTTP Error: Not Acceptable
-    if ( game.matrix(x)(y) != 0 ) {
+    if ( game.matrix(x)(y) != 0 ) {  
       throw new WebApplicationException(406);
     }
   }
