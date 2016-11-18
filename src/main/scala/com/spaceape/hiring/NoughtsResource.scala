@@ -5,6 +5,7 @@ import javax.ws.rs.core.MediaType
 import javax.ws.rs.core.Response.Status
 import javax.ws.rs.core.Response
 import collection.mutable.HashMap
+import redis.clients.jedis.Jedis
 
 import com.spaceape.hiring.model.{GameState, Move, Game};
 
@@ -16,6 +17,8 @@ class NoughtsResource() {
 
   @POST
   def createGame(@QueryParam("player1Id") player1: String, @QueryParam("player2Id") player2: String): String = {
+    val jedis = new Jedis("localhost");
+    jedis.set("foo", "bar");
     //You cannot play against yourself, unless your are very bored!
     if ( player1 == player2 ) {
         //I prefer to use a separate error code for this case, but HTTP error codes
