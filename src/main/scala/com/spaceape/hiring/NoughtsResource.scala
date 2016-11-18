@@ -33,7 +33,6 @@ class NoughtsResource() {
 
     //First make sure there is no other game between these two players
     for( id <- getAllGames() ) {
-      printf("Loading game %s\n", id)
       val v = loadGame(id).get
 
       if ( v.player1Id == player1 && v.player2Id == player2 && !v.isGameOver) {

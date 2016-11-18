@@ -8,9 +8,11 @@ import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import com.spaceape.hiring.model.{Move, GameState}
 import io.dropwizard.testing.junit.DropwizardAppRule
 import org.scalatest.junit.JUnitSuite
+import redis.clients.jedis.Jedis
 
 import org.junit.Test
 import org.junit.ClassRule
+import org.junit.Before
 import com.mashape.unirest.http.Unirest
 import org.scalatest.Matchers
 
@@ -204,5 +206,11 @@ class NoughtsTest extends JUnitSuite with Matchers {
         Move("8", 2, 1), 
         Move("7", 2, 2)), 
       None, true, 9, 2);
+  }
+
+  @Before
+  def setUp() {
+    val jedis = new Jedis("localhost");
+    jedis.flushAll()
   }
 }
