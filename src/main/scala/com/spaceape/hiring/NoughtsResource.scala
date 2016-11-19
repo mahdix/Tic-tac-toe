@@ -10,14 +10,14 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import scala.collection.JavaConversions._
 
-import com.spaceape.hiring.model.{GameState, Move, Game, LeaderboardEntry};
+import com.spaceape.hiring.model.{GameState, Move, Game, LeaderboardEntry}
 import com.spaceape.hiring.helper.GameUtils
 
 @Path("/game")
 @Produces(Array(MediaType.APPLICATION_JSON))
 @Consumes(Array(MediaType.APPLICATION_JSON))
 class NoughtsResource() {
-  val jedis = new Jedis("localhost");
+  val jedis = new Jedis("localhost")
 
   val objectMapper = new ObjectMapper()
   objectMapper.registerModule(DefaultScalaModule)
@@ -33,7 +33,7 @@ class NoughtsResource() {
     if ( player1 == player2 ) {
         //I prefer to use a separate error code for this case, but HTTP error codes
         //are limited and no other code has a more meaningful type
-        throw new WebApplicationException(403);
+        throw new WebApplicationException(403)
     }
 
     //First make sure there is no other game between these two players
@@ -42,7 +42,7 @@ class NoughtsResource() {
 
       if ( v.player1Id == player1 && v.player2Id == player2 && !v.isGameOver) {
         //These players have already another game in progress -> Request is forbidden
-        throw new WebApplicationException(403);
+        throw new WebApplicationException(403)
       }
     }
 
@@ -56,7 +56,7 @@ class NoughtsResource() {
   }
 
   def getAllGames(): Set[String] = {
-    val gameIds = jedis.keys("GAME::*");
+    val gameIds = jedis.keys("GAME::*")
     var result: Set[String] = Set()
 
     for(k <- gameIds ) {
@@ -68,30 +68,30 @@ class NoughtsResource() {
 
   def updateGame(game: Game, gameId: String) {
     val json = objectMapper.writeValueAsString(game)
-    jedis.set("GAME::"+gameId, json);
+    jedis.set("GAME::"+gameId, json)
   }
 
   //Save a new game
   def saveGame(game: Game): String = {
-    var gameId = jedis.get("NEXT_ID");
-    if ( gameId == null ) gameId = "0";
+    var gameId = jedis.get("NEXT_ID")
+    if ( gameId == null ) gameId = "0"
 
     val json = objectMapper.writeValueAsString(game)
-    jedis.set("GAME::"+gameId, json);
+    jedis.set("GAME::"+gameId, json)
 
     //update redis counter for next game id
-    var intId = gameId.toInt;
+    var intId = gameId.toInt
     intId = intId + 1
     jedis.set("NEXT_ID", intId.toString)
 
-    return gameId;
+    return gameId
   }
 
   def loadGame(gameId: String): Option[Game] = {
-    val json = jedis.get("GAME::"+gameId); 
-    if ( json == null ) return None;
+    val json = jedis.get("GAME::"+gameId) 
+    if ( json == null ) return None
 
-    return Some(objectMapper.readValue(json, classOf[Game]));
+    return Some(objectMapper.readValue(json, classOf[Game]))
   }
 
   @GET
@@ -102,7 +102,7 @@ class NoughtsResource() {
     //but I think this is fine because this is not a sensitive call
 
     //Return 10 highest scores in descending order
-    val redisBoard = jedis.zrevrange("BOARD", -10, -1);
+    val redisBoard = jedis.zrevrange("BOARD", -10, -1)
     var result: Seq[LeaderboardEntry] = Seq()
 
     //Seems I need to convert java created mutable set to a Scala native immutable set
@@ -120,23 +120,23 @@ class NoughtsResource() {
   @Path("/{gameId}")
   def getGame(@PathParam("gameId") gameId: String): GameState = {
     //Concurrency: Same as getLeaderboard. It is possible to return stale data but this is fine for the same reason
-    val maybeGame = loadGame(gameId);
+    val maybeGame = loadGame(gameId)
 
     if ( maybeGame == None ) {
       //Cannot find this game
-      throw new WebApplicationException(404);
+      throw new WebApplicationException(404)
     }
 
     val game = maybeGame.get
 
-    val winnerIndex = game.winnerIndex;
-    val gameOver = game.isGameOver;
-    var winnerId: Option[String] = None;
+    val winnerIndex = game.winnerIndex
+    val gameOver = game.isGameOver
+    var winnerId: Option[String] = None
 
-    if ( winnerIndex == 1 ) winnerId = Some(game.player1Id);
-    if ( winnerIndex == 2 ) winnerId = Some(game.player2Id);
+    if ( winnerIndex == 1 ) winnerId = Some(game.player1Id)
+    if ( winnerIndex == 2 ) winnerId = Some(game.player2Id)
 
-    return GameState(winnerId, gameOver, GameUtils.getMoveCount(game.matrix) , game.activePlayer);
+    return GameState(winnerId, gameOver, GameUtils.getMoveCount(game.matrix) , game.activePlayer)
   }
 
 
@@ -152,47 +152,47 @@ class NoughtsResource() {
     //game will move to inconsistent state (e.g. player1 has won but player2 has made a move after loosing the game)
     this.synchronized {
       //First find corresponding game 
-      val maybeGame = loadGame(gameId);
+      val maybeGame = loadGame(gameId)
 
       if ( maybeGame == None ) {
         //Cannot find this game
-        throw new WebApplicationException(404);
+        throw new WebApplicationException(404)
       }
 
-      val game = maybeGame.get;
+      val game = maybeGame.get
 
-      var playerIndex = 0;
+      var playerIndex = 0
 
       if ( move.playerId == game.player1Id ) {
-        playerIndex = 1;
+        playerIndex = 1
       }
 
       if ( move.playerId == game.player2Id ) {
-        playerIndex = 2;
+        playerIndex = 2
       }
 
       //Validate the move and return HTTP error if its not valid
-      GameUtils.validateMove(game, playerIndex, move.x, move.y);
+      GameUtils.validateMove(game, playerIndex, move.x, move.y)
 
-      game.matrix(move.x)(move.y) = playerIndex;
+      game.matrix(move.x)(move.y) = playerIndex
 
       //switch active player 
-      game.activePlayer = 3 - game.activePlayer;
+      game.activePlayer = 3 - game.activePlayer
 
       //see if playerIndex is a winner because of this move
       if ( GameUtils.isWinner(game.matrix, playerIndex) ) {
-        game.isGameOver = true;
-        game.winnerIndex = playerIndex;
-        updatePlayerScore(move.playerId);
+        game.isGameOver = true
+        game.winnerIndex = playerIndex
+        updatePlayerScore(move.playerId)
       }
       else if ( GameUtils.isDraw(game.matrix) ) {
-        game.isGameOver = true;
-        game.winnerIndex = 0;
+        game.isGameOver = true
+        game.winnerIndex = 0
       }
 
       updateGame(game, gameId)
     }
 
-    return Response.status(Response.Status.OK).build();
+    return Response.status(Response.Status.OK).build()
   }
 }
