@@ -10,7 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import scala.collection.JavaConversions._
 
-import com.spaceape.hiring.model.{GameState, Move, Game};
+import com.spaceape.hiring.model.{GameState, Move, Game, LeaderboardEntry};
 
 @Path("/game")
 @Produces(Array(MediaType.APPLICATION_JSON))
@@ -90,15 +90,18 @@ class NoughtsResource() {
   }
 
   @GET
-  def getLeaderboard(): Set[LeaderboardEntry] = {
+  @Path("/leaderBoard")
+  def getLeaderboard(): Seq[LeaderboardEntry] = {
     //Return 10 highest scores in descending order
     val redisBoard = jedis.zrevrange("BOARD", -10, -1);
-    var result: Set[String] = Set()
+    var result: Seq[LeaderboardEntry] = Seq()
 
     //Seems I need to convert java created mutable set to a Scala native immutable set
     for(k <- redisBoard ) {
       val score = jedis.zscore("BOARD", k)
-      result += LeaderboardEntry(k, score)
+      //The idiomatic way is to use "map" function to create the result sequence
+      //in one shot
+      result = result :+ LeaderboardEntry(k, score.toInt)
     }
 
     return result

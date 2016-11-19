@@ -5,7 +5,7 @@ import javax.ws.rs.core.Response.Status
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
-import com.spaceape.hiring.model.{Move, GameState}
+import com.spaceape.hiring.model.{Move, GameState, LeaderboardEntry}
 import io.dropwizard.testing.junit.DropwizardAppRule
 import org.scalatest.junit.JUnitSuite
 import redis.clients.jedis.Jedis
@@ -65,6 +65,18 @@ class NoughtsTest extends JUnitSuite with Matchers {
     }
 
     objectMapper.readValue(response.getBody, classOf[GameState])
+  }
+
+
+  def getLeaderboard() = {
+    val response = Unirest.get(s"$baseUrl/leaderBoard").asString()
+
+    if(response.getStatus != Status.OK.getStatusCode) {
+      throw new RuntimeException(s"${response.getStatus} when getting state: ${response.getBody}")
+    }
+
+    //For some reason, we don't get the original data type here
+    objectMapper.readValue(response.getBody, classOf[List[Map[String, String]]])
   }
 
 	@Test
@@ -165,7 +177,7 @@ class NoughtsTest extends JUnitSuite with Matchers {
   }
 
   def winGame(winner: String, looser: String) {
-    testGameFlow(looser, "4a",
+    testGameFlow(looser, winner,
       Seq(
         Move(looser, 0, 0),
         Move(winner, 0, 1),
@@ -178,31 +190,51 @@ class NoughtsTest extends JUnitSuite with Matchers {
 
   @Test
   def testLeaderboard {
-    val jedis = new Jedis("localhost");
-    jedis.flushAll()
-
+    //a must win 5 games
     winGame("a", "b")
     winGame("a", "c")
     winGame("a", "d")
     winGame("a", "e")
-    winGame("a", "d")
-    winGame("a", "d")
-    winGame("a", "d")
-    winGame("a", "d")
-    winGame("a", "d")
-    winGame("a", "d")
-    winGame("a", "d")
-    winGame("a", "d")
-    winGame("a", "d")
-    winGame("a", "d")
-    winGame("a", "d")
-    winGame("a", "d")
-    winGame("a", "d")
-    winGame("a", "d")
-    winGame("a", "d")
-    winGame("a", "d")
-    winGame("a", "d")
+    winGame("a", "f")
 
+    //b must win 2 games
+    winGame("b", "a")
+    winGame("b", "c")
+
+    //c must win 3 games
+    winGame("c", "d")
+    winGame("c", "d")
+    winGame("c", "d")
+
+    //d, e, f, g, h, i and j each must win 1 game
+    winGame("d", "a")
+    winGame("e", "a")
+    winGame("f", "a")
+    winGame("g", "a")
+    winGame("h", "a")
+    winGame("i", "a")
+    winGame("j", "a")
+
+    //now get the leaderBoard as a Seq of LeaderboardEntry
+    val leaderBoard = getLeaderboard
+    var correctCount = 0
+    //Trying to write clean code to compare result structure with expected
+    //This is not the best possible way (especially because I am relying on the order of 
+    // elements with equal score)
+    if (leaderBoard(0)("playerId") == "a" && leaderBoard(0)("score") == 5 ) correctCount+=1;
+    if (leaderBoard(1)("playerId") == "c" && leaderBoard(1)("score") == 3 ) correctCount+=1;
+    if (leaderBoard(2)("playerId") == "b" && leaderBoard(2)("score") == 2 ) correctCount+=1;
+    if (leaderBoard(3)("playerId") == "j" && leaderBoard(4)("score") == 1 ) correctCount+=1;
+    if (leaderBoard(4)("playerId") == "i" && leaderBoard(5)("score") == 1 ) correctCount+=1;
+    if (leaderBoard(5)("playerId") == "h" && leaderBoard(6)("score") == 1 ) correctCount+=1;
+    if (leaderBoard(6)("playerId") == "g" && leaderBoard(7)("score") == 1 ) correctCount+=1;
+    if (leaderBoard(7)("playerId") == "f" && leaderBoard(8)("score") == 1 ) correctCount+=1;
+    if (leaderBoard(8)("playerId") == "e" && leaderBoard(9)("score") == 1 ) correctCount+=1;
+    if (leaderBoard(9)("playerId") == "d" && leaderBoard(9)("score") == 1 ) correctCount+=1;
+    
+    if ( correctCount != 10 ) {
+      throw new RuntimeException(s"Invalid leaderBoard: ${leaderBoard}")
+    }
   }
 
   @Test
@@ -251,6 +283,8 @@ class NoughtsTest extends JUnitSuite with Matchers {
 
   @Before
   def setUp() {
+    //We are going to create lots of games in each test. Empty the storage to prevent
+    //any conflict
     val jedis = new Jedis("localhost");
     jedis.flushAll()
   }
