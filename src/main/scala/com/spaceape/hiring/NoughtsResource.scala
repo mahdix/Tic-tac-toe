@@ -5,11 +5,11 @@ import javax.ws.rs.core.MediaType
 import javax.ws.rs.core.Response.Status
 import javax.ws.rs.core.Response
 import collection.mutable.HashMap
-import redis.clients.jedis.Jedis
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import scala.collection.JavaConversions._
 
+import redis.clients.jedis.Jedis
 import com.spaceape.hiring.model.{GameState, Move, Game, LeaderboardEntry}
 import com.spaceape.hiring.helper.GameUtils
 
@@ -19,6 +19,7 @@ import com.spaceape.hiring.helper.GameUtils
 class NoughtsResource() {
   val jedis = new Jedis("localhost")
 
+  //This is used to serialize/deserialize objects for Redis storage
   val objectMapper = new ObjectMapper()
   objectMapper.registerModule(DefaultScalaModule)
 
@@ -66,6 +67,7 @@ class NoughtsResource() {
     return result
   }
 
+  //Update an existing game. Called after each move.
   def updateGame(game: Game, gameId: String) {
     val json = objectMapper.writeValueAsString(game)
     jedis.set("GAME::"+gameId, json)
@@ -139,7 +141,6 @@ class NoughtsResource() {
     return GameState(winnerId, gameOver, GameUtils.getMoveCount(game.matrix) , game.activePlayer)
   }
 
-
   @PUT
   @Path("/{gameId}")
   def makeMove(@PathParam("gameId") gameId: String, move: Move): Response = {
@@ -174,12 +175,13 @@ class NoughtsResource() {
       //Validate the move and return HTTP error if its not valid
       GameUtils.validateMove(game, playerIndex, move.x, move.y)
 
+      //If everything is ok, save the move
       game.matrix(move.x)(move.y) = playerIndex
 
       //switch active player 
       game.activePlayer = 3 - game.activePlayer
 
-      //see if playerIndex is a winner because of this move
+      //do we have a winner? or a draw?
       if ( GameUtils.isWinner(game.matrix, playerIndex) ) {
         game.isGameOver = true
         game.winnerIndex = playerIndex
@@ -190,6 +192,7 @@ class NoughtsResource() {
         game.winnerIndex = 0
       }
 
+      //update Redis
       updateGame(game, gameId)
     }
 
