@@ -238,6 +238,22 @@ class NoughtsTest extends JUnitSuite with Matchers {
   }
 
   @Test
+  def stressTest {
+    for( a <- 1 to 500){
+      initGame(randomString(20), randomString(20))
+    }
+  }
+
+  def randomString(length: Int) = {
+    val r = new scala.util.Random
+    val sb = new StringBuilder
+    for (i <- 1 to length) {
+      sb.append(r.nextPrintableChar)
+    }
+    sb.toString
+  }
+
+  @Test
   def testFlows {
     //Player 4 wins in a normal flow
     testGameFlow("3", "4",

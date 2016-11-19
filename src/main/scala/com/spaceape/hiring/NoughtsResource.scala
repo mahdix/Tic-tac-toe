@@ -38,6 +38,11 @@ class NoughtsResource() {
     }
 
     //First make sure there is no other game between these two players
+    //There are other faster ways to do this, rather than iterating through all games.
+    //For example we can store a helper key on redis like : "PLAYERS::P1::P2" which is 
+    //created when a game between P1 and P2 are started and removed when game is over.
+    //then, upon game creation we just need to check existence of a key with same pattern 
+    //in redis
     for( id <- getAllGames() ) {
       val v = loadGame(id).get
 
