@@ -84,7 +84,7 @@ Candidate Comments
 ------------------
 ###Work done###
 - This is the first piece of code I have ever written in Scala language, so maybe some part of it is not idiomatic Scala.
-- The main task + test extension + extra tasks are done.
+- The main task + test extension + extra tasks are done. The code is compiling and tests are all passing.
 - I have added 3 tags to the repository to separate changes: 
 -   v1 tag - basic task + bonus point done
 -   v2 tag - redis support added
@@ -93,29 +93,37 @@ Candidate Comments
 - I have also enhanced gameState API call to return number of moves made in the game and currently active player
 - For the concurrency task, I have just added a simple synchronization lock + made some further commets in the code. 
     There are more possibilities for enhancements here as discussed in the comments.
-- For persistence, I chose Redis as an in-memory storage. You can achieve real persistence by configuring Redis to save data to the disk.
-    The reason I chose Redis was my previous experience with it and also it's high performance.
+- For persistence, I chose Redis as an in-memory storage. You can achieve real persistence by configuring Redis to 
+    save data to the disk.  The reason I chose Redis was my previous experience with it and also it's high performance.
 - Before using Redis, I store everything on an in-process HashMap
-- For the Leaderboard task, I have also used Redis with scoring to keep track of scores of all players, update them and get top 10 players.
+- For the Leaderboard task, I have also used Redis with scoring to keep track of scores of all players, update them and 
+    get top 10 players.
 - I could not dedicate a good chunk of time to this project. That's why it took 4 days.
-- A stress test is added which will create 500 games. I did not increase this number because test execution would take too long.
-    But generally these tests are done in external tools like JMeter.
+- A stress test is added which will create 500 games. I did not increase this number because test execution would 
+    take too long. But generally these tests are done in external tools like JMeter.
+- I have added Jedis dependency to  pom.xml.
 
 ###Suggestions###
-- Maybe it's a good idea to implement some expiration for games, so when no move is done in X minutes, we will just expire them (although
-    I have not implemented this).
+- Maybe it's a good idea to implement some expiration for games, so when no move is done in X minutes, we will just 
+    expire them (although I have not implemented this).
 - It is a best practice to use some type of authentication to prevent DoS attacks on publicly available API.
+- As I previously mentioned, further work can be done for concurrency to increase performance and reduce locking periods.
+- I tried to break 'NoughtsResource.scala' into two parts (GameUtils). But still this module can be more simplified with 
+    less code and fewer methods.
 
 ###How to build and run?###
 - To compile the project run 'mvn compile' on the root directory.
 - To create a fat jar of the project: 'mvn package'
 - To execute fat jar (start the web server and process requests): 'java -jar target/noughts-coding-test-0.0.1-SNAPSHOT-bin.jar server test.yml' 
-- To install Redis you just need to do default installation (on localhost and default port), according to redis.io
+- To install Redis you just need to do default installation (on localhost and with default configuration), according to redis.io
 - To run tests: 'mvn test' (Before sending any request, make sure redis is up and running)
 - You can use curl to send requests. Make sure the server is up and running and in another terminal run these commands:
-  Create a new game: `curl -X POST "http://localhost:8080/game?player1Id=a&player2Id=b"` (between players 'a' and 'b')
-  Get game status: `curl -i -H "Accept: application/json" -H "Content-Type: application/json" http://localhost:8080/game/0` (0 is game id)
-  Make a move: `curl  -H "Content-Type: application/json" -H 'Accept: application/json' -X PUT -d '{"playerId":"a", "x":0, "y":0}' http://localhost:8080/game/0`
+  Create a new game: 
+      `curl -X POST "http://localhost:8080/game?player1Id=a&player2Id=b"` (between players 'a' and 'b')
+  Get game status: 
+      `curl -i -H "Accept: application/json" -H "Content-Type: application/json" http://localhost:8080/game/0` (0 is game id)
+  Make a move: 
+      `curl  -H "Content-Type: application/json" -H 'Accept: application/json' -X PUT -d '{"playerId":"a", "x":0, "y":0}' http://localhost:8080/game/0`
 
 
 
